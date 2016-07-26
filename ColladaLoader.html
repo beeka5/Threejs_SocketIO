@@ -1,0 +1,264 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+
+
+<title>Test von Web GL</title>
+<meta charset="utf-8">
+</head>
+<body style="margin: 0;">
+ 
+<script src="/js/three.min.js"></script>
+<script src="/js/loaders/ColladaLoader.js"></script>
+<script src="/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+
+<div><p id="para">test</p></div>
+<script>
+
+var scene, camera, renderer, knotObj,dae;
+var xAxis = new THREE.Vector3(1,0,0);
+var yAxis = new THREE.Vector3(0,1,0);
+var zAxis = new THREE.Vector3(0,0,1);
+
+var initialX=0,initialY=0,initialZ = 0;
+var rotObjectMatrix = new THREE.Matrix4();
+
+var loader = new THREE.ColladaLoader();
+loader.options.convertUpAxis = false;
+loader.load( 'models/phone.dae', function ( collada ) {
+		//dummy1.dae
+		dae = collada.scene;
+		//var skin = collada.skins[ 0 ];
+		dae.position.set(0,0,0);//x,z,y- if you think in blender dimensions ;)
+		//dae.scale.set(1.5,1.5,1.5);
+		
+		// var objects;
+		// dae.traverse( function ( child ){
+		//         objects.push(child);
+		//     } );
+
+		// for( var i = 0; i < dae.children.length; i++ ) {
+		//     console.log(dae.children[i].name);
+		// }
+
+		 knotObj = dae.children[1];
+		 
+		 // knotObj.matrixAutoUpdate = false; 
+
+		
+
+		init();
+		 animate();
+
+});
+
+
+
+
+function init() {
+		scene = new THREE.Scene();
+		var WIDTH = window.innerWidth,
+		HEIGHT = window.innerHeight;
+		renderer = new THREE.WebGLRenderer({antialias:true});
+		renderer.setSize(WIDTH, HEIGHT);
+		document.body.appendChild(renderer.domElement);
+		camera = new THREE.PerspectiveCamera(45, WIDTH / HEIGHT, 0.1, 10000);
+		camera.position.set(-5,-5,5);
+		
+		scene.add(camera);
+		camera.lookAt(new THREE.Vector3( 0, 0, 0 ));
+		camera.up= new THREE.Vector3( 0, 0, 1 )
+		
+		window.addEventListener('resize', function() {
+		var WIDTH = window.innerWidth,
+		HEIGHT = window.innerHeight;
+		renderer.setSize(WIDTH, HEIGHT);
+		camera.aspect = WIDTH / HEIGHT;
+		camera.updateProjectionMatrix();
+		
+	});
+
+
+		scene.add(dae);
+
+		var axes = new THREE.AxisHelper(50);
+		axes.position = dae.position;
+		scene.add(axes);
+
+		var gridXZ = new THREE.GridHelper(100, 10);
+		gridXZ.setColors( new THREE.Color(0x8f8f8f), new THREE.Color(0x8f8f8f) );
+		gridXZ.position.set(0,0,0 );
+		gridXZ.rotation.x = Math.PI/2; 
+		scene.add(gridXZ);
+
+		var light = new THREE.PointLight(0xfffff3, 0.8);
+		light.position.set(-2,3,3);
+		scene.add(light);
+
+		// var sphereSize = 1;
+		// var pointLightHelper = new THREE.PointLightHelper( light, sphereSize );
+		// scene.add( pointLightHelper );
+
+		var light2 = new THREE.PointLight(0xd7f0ff, 0.2);
+		light2.position.set(2,2,1);
+		scene.add(light2);
+
+		// var sphereSize = 1;
+		// var pointLightHelper2 = new THREE.PointLightHelper( light2, sphereSize );
+		// scene.add( pointLightHelper2 );
+
+		var light3 = new THREE.PointLight(0xFFFFFF, 0.5);
+		light3.position.set(150,200,-100);
+		scene.add(light3);
+
+		// var sphereSize = 1;
+		// var pointLightHelper3 = new THREE.PointLightHelper( light3, sphereSize );
+		// scene.add( pointLightHelper3 );
+
+
+		controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+}
+
+
+		var socket = io();
+
+		socket.on('moveObj', function(clientNickname, message, currentdate){
+			var deltaX = message["moveX"];
+			var deltaY = message["moveY"];
+		
+			knotObj.position.set(deltaX,deltaY,0);
+			console.log(JSON.stringify(deltaX));
+			console.log(JSON.stringify(deltaY));
+
+		});
+
+		socket.on('scaleObj', function(clientNickname, message, currentdate){
+				var scaleData = message["scaleValue"];
+		
+				knotObj.scale.set(scaleData,scaleData,scaleData);
+			console.log(JSON.stringify(scaleData));
+		});
+
+		socket.on('reset', function(clientNickname, message, currentdate){
+			
+		
+				knotObj.scale.set(1,1,1);
+				knotObj.position.set(0,0,0);
+				knotObj.rotation.set(0,0,0);
+			console.log(JSON.stringify(scaleData));
+		});
+
+		socket.on('rotateObj', function(clientNickname, message, currentdate){
+		var sensor = message["sensor"];
+		var angles = message["data"];
+
+		 var diffX = (angles["valX"]-initialX).toString();
+		 var diffY = (angles["valY"]-initialY).toString();
+		 var diffZ = (angles["valZ"]-initialZ).toString();
+
+		
+
+ 		var priceDesc = document.getElementById('para');
+		priceDesc.innerHTML = JSON.stringify(message).concat("<br>","dx:",diffX," dy:",diffY," dz:",diffZ,"<br>","iX:",initialX," iy:",initialY," iz:",initialZ,"<br>"," rotX:",knotObj.rotation.x*(180/Math.PI)," rotY:",knotObj.rotation.y*(180/Math.PI)," rotZ:",knotObj.rotation.z*(180/Math.PI));
+
+
+		if((angles["valX"]-initialX)==0){
+			// var rx = knotObj.rotation.x;
+			// if (knotObj.rotation.x*(180/Math.PI) != initialX) {
+			// 	knotObj.rotateX = (rx-initialX) * Math.PI/180;
+			// }
+			knotObj.rotation.x = (initialX) * Math.PI/180;
+			// rotateAroundObjectAxis(knotObj,xAxis,(knotObj.rotation.x-initialX) * Math.PI/180);
+		}else{
+			knotObj.rotateOnAxis(xAxis,(angles["valX"]-knotObj.rotation.x) * Math.PI/180);
+			initialX = angles["valX"];
+		}
+		if((angles["valY"]-initialY)==0){
+			// var rx = knotObj.rotation.y;
+			// if (knotObj.rotation.y*(180/Math.PI) != initialY) {
+			// 	knotObj.rotateY = (rx-initialY) * Math.PI/180;
+			// }
+			knotObj.rotation.y = (initialY) * Math.PI/180;
+			// rotateAroundObjectAxis(knotObj,yAxis,(knotObj.rotation.y-initialY) * Math.PI/180);
+		}else{
+			knotObj.rotateOnAxis(yAxis,(angles["valY"]-knotObj.rotation.y) * Math.PI/180);
+			initialY = angles["valY"];
+		}
+		if((angles["valZ"]-initialZ)==0){
+			// var rx = knotObj.rotation.z;
+			// if (knotObj.rotation.z*(180/Math.PI) != initialZ) {
+			// 	knotObj.rotateZ = (rx-initialZ) * Math.PI/180;
+			// }
+			knotObj.rotation.z = (initialZ) * Math.PI/180;
+
+			// rotateAroundObjectAxis(knotObj,zAxis,(knotObj.rotation.z-initialZ) * Math.PI/180);
+		}else{
+			knotObj.rotateOnAxis(zAxis,(angles["valZ"]-knotObj.rotation.z) * Math.PI/180);
+			initialZ = angles["valZ"];
+		}
+		
+		
+
+
+		console.log(JSON.stringify(message));
+		
+
+		// rotObjectMatrix.set(1,0,0,0,0,0.9047516584396362,0.4259394705295563,0,0,-0.4259394705295563,0.9047516584396362,0,0,0,0,1);
+		// rotObjectMatrix.fromArray(angles);
+		// knotObj.applyMatrix(rotObjectMatrix);
+		// knotObj.updateMatrix();
+
+		// var a = new THREE.Euler((-angles["valX"]+initialX) * Math.PI/180, (-angles["valY"]+initialY) * Math.PI/180, (angles["valZ"]-initialZ) * Math.PI/180, 'XYZ' );
+		// console.log(a)
+		//console.log(rotObjectMatrix);
+		// knotObj.matrix.multiply(rotObjectMatrix);
+		
+
+		// knotObj.rotation.setFromRotationMatrix(rotObjectMatrix);
+
+		
+		
+
+		});
+
+
+
+function rotateAroundObjectAxis(object, axis, radians) {
+    rotObjectMatrix = new THREE.Matrix4();
+    rotObjectMatrix.makeRotationAxis(axis.normalize(), radians);
+
+	console.log(radians*180/Math.PI);
+    // old code for Three.JS pre r54:
+    // object.matrix.multiplySelf(rotObjectMatrix);      // post-multiply
+    // new code for Three.JS r55+:
+    object.matrix.multiply(rotObjectMatrix);
+
+    // old code for Three.js pre r49:
+    // object.rotation.getRotationFromMatrix(object.matrix, object.scale);
+    // old code for Three.js r50-r58:
+    // object.rotation.setEulerFromRotationMatrix(object.matrix);
+    // new code for Three.js r59+:
+    // object.quaternion.setFromAxisAngle(axis.normalize(),radians);
+    object.rotation.setFromRotationMatrix(object.matrix);
+
+    // console.log("rotated");
+    
+}
+	
+
+function animate() {
+	// console.log("animate")
+	requestAnimationFrame(animate);
+	renderer.render(scene, camera);
+	controls.update();
+}
+
+ 	// Rotate an object around an arbitrary axis in object space
+
+      
+</script>
+</body>
+</html> 

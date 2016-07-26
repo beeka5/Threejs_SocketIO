@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 10px 10px; }
+      
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form action="">
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+    	var nickname = makeid();
+      var socket = io();
+      $('form').submit(function(){
+      var currentdate = new Date(); 
+	  var datetime = "Last Sync: " + currentdate.getDate() + "/"
+                + (currentdate.getMonth()+1)  + "/" 
+                + currentdate.getFullYear() + " @ "  
+                + currentdate.getHours() + ":"  
+                + currentdate.getMinutes() + ":" 
+                + currentdate.getSeconds();
+
+         var msg = $("#m").val();
+
+        var jsonObj = {
+        	"code": "0001",
+        	"message" : msg
+        }
+                
+        socket.emit('chatMessage', nickname , jsonObj);
+
+        
+        $('#m').val('');
+        return false;
+      });
+
+      socket.on('chatMessage', function(clientNickname, message, currentdate){
+     	
+     	var msg = message["message"];
+     	var myhtml = ""
+     	var text = clientNickname +":" + msg + "</br>"+ currentdate;
+     	if(clientNickname === nickname) {
+
+			myhtml="<div style='width:100%; height:auto;background-color:white; padding-left:10px;padding-top:10px;'>"+ text +"</div>" 
+
+     	}
+     	else{
+
+     		myhtml="<div style='width:100%; height:auto;background-color:white; padding-left:10px;padding-top:10px;text-align:right;'>"+ text +"</div>"
+     	 
+     	}
+     	
+        console.log(myhtml);
+        $('#messages').append($('<li>').html(myhtml));
+
+        
+      });
+      
+       $('#m').focus(function() {
+ 		 socket.emit("startType", nickname)
+		});
+	   $('#m').focusout(function() {
+      		socket.emit("stopType", nickname)
+      	});
+      
+
+   $( window ).unload(function() {
+   		console.log(nickname);
+   		
+  		return socket.emit("exitUser", nickname);
+	});
+
+
+
+function makeid()
+{
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    for( var i=0; i < 5; i++ )
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return text;
+}
+    </script>
+  </body>
+</html>
