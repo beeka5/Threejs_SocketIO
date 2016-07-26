@@ -5,6 +5,8 @@ Requirement
 
 Node.js must be installed in your machine.
 You can check version of installed node.js by executing "node -v" command
+![screen shot 2016-07-26 at 3 56 47 pm](https://cloud.githubusercontent.com/assets/4947210/17134328/9aa5ebae-5349-11e6-90cb-c60cafcbe7dd.png)
+
 
 How to start server
 
